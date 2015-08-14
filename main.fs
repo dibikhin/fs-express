@@ -1,42 +1,30 @@
 module FsExpress =
 	type App = {route:string}
-	type Req = {host:string; query:string}
+	type Req = {host:string; route:string}
 	
-	let send x =
-		printfn x
+	let send text =
+		printfn text
+	
+	let send2 text code headers =
+		printf text
+		printf "%i"code
+		printf headers
 	
 	let get = fun route handle ->
-		let req = {host="localhost"; query="/"}
-		handle req "dummy"
+		let req = {host="localhost"; route="/home"}
+		if route = req.route then handle req "dummy"
 	
 module App = 
 	open FsExpress
 	
 	get "/"
 		(fun req res ->
-			printfn "%A" req.host
+			printf "%A" req.host
+			printf "%A" req.route
 			send "Hello!")
-		
-//	get "/home"
-//		(fun req res -> send "hi, home!")
-//	
-//	let app = App
-//	app "customers"
-//		{create: fun req -> ignore;
-//		 update: fun req -> ignore;
-//		 remove: fun req -> ignore}
-//	
-
-//var express = require('express');
-//var app = express();
-//
-//app.get('/', function (req, res) {
-//  res.send('Hello World!');
-//});
-//
-//var server = app.listen(3000, function () {
-//  var host = server.address().address;
-//  var port = server.address().port;
-//
-//  console.log('Example app listening at http://%s:%s', host, port);
-//});
+	
+	get "/home"
+		(fun req res ->
+			printf "%A" req.host
+			printf "%A" req.route
+			send2 "Hi, Home!" 200 "{'Content-Type': 'text/plain'}")
