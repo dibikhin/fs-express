@@ -1,4 +1,4 @@
-module Fexpress =
+module FsExpress =
 	type App = {route:string}
 	type Req = {host:string; query:string}
 	
@@ -10,7 +10,7 @@ module Fexpress =
 		handle req "dummy"
 	
 module App = 
-	open Fexpress
+	open FsExpress
 	
 	get "/"
 		(fun req res ->
