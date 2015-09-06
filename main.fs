@@ -6,12 +6,28 @@ module FsExpress =
 	open System
 	open System.Net
 	open System.Text
-	open System.IO
+	open System.IO	
+	open FSharp.Data
+	open Newtonsoft.Json
+	
 	open Constants
 
 	type Handler = HttpListenerRequest->HttpListenerResponse->Async<unit>
 	
-	let defaultHost = "http://localhost:8760"
+	let defaultHost = "http://localhost:8762"
+	
+	let readData (req:HttpListenerRequest) =
+		use reader = new IO.StreamReader(req.InputStream) 
+		reader.ReadToEnd()
+		
+	let toObjectOf<'a> json =
+		JsonConvert.DeserializeObject<'a>(json)
+	
+	let fetchObjectOf<'T> req =
+		readData req |> toObjectOf<'T>
+		
+	let toJson obj =
+		JsonConvert.SerializeObject obj
 	
 	let listener (route:string) (handler:Handler) =
 		let hl = new HttpListener()
@@ -35,15 +51,31 @@ module FsExpress =
 				resp.OutputStream.Write(txtBytes, 0, txtBytes.Length)
 				resp.OutputStream.Close()
 			})
+			
+	let post = get
+	
+	let put = get
 	
 module App =
 	open FsExpress
+	
+	type User = {id:int; age:int; name:string}
 	
 	get "/" (fun req -> "Hi!")
 	
 	get "/home" (fun req -> "hi, from home")
 	
-	get "/person" (fun req ->
-		req.QueryString.["oh"] |> Dump
-		"hello, Person")
-	// post "/person" // parse json to Person
+// todo: split GET/PUT/POST/PATCH/DELETE
+
+	get "/user" (fun req ->
+		req.QueryString.["id"] |> Dump //json query to db?
+		let mary = {id=876; age=21; name="Mary"}
+		mary |> toJson)
+		
+	// curl --data "{\"name\": \"dude\"}" http://yourhosthere/user
+//	post "/user" (fun req ->
+//		let user = req |> fetchObjectOf<User>
+//		user |> Dump
+//		"hello, new User")
+		
+	// todo: get static file
