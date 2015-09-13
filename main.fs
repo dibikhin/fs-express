@@ -14,8 +14,10 @@ module FsExpress =
 
 	type Handler = HttpListenerRequest->HttpListenerResponse->Async<unit>
 	
+	// todo: non-default port
 	let defaultHost = "http://localhost:8762"
 	
+	// Helpers //
 	let readData (req:HttpListenerRequest) =
 		use reader = new IO.StreamReader(req.InputStream) 
 		reader.ReadToEnd()
@@ -23,12 +25,13 @@ module FsExpress =
 	let toObjectOf<'a> json =
 		JsonConvert.DeserializeObject<'a>(json)
 	
-	let fetchObjectOf<'T> req =
+	let fromJsonOf<'T> req =
 		readData req |> toObjectOf<'T>
 		
 	let toJson obj =
 		JsonConvert.SerializeObject obj
 	
+	// HttpListener //	
 	let listener (route:string) (handler:Handler) =
 		let hl = new HttpListener()
 		let postfixedRoute = if route.EndsWith slash then route else (route + slash)
@@ -42,15 +45,26 @@ module FsExpress =
 				Async.Start(handler context.Request context.Response)
 		} |> Async.Start
 		
-	let get = fun route txt ->
+	// Routing //
+	let get = fun route txtOf ->
 		listener route (fun req resp ->
-			let text = txt req
-			async {
-				let txtBytes = Encoding.ASCII.GetBytes(text:string)
-				resp.ContentType <- textHtml
-				resp.OutputStream.Write(txtBytes, 0, txtBytes.Length)
-				resp.OutputStream.Close()
-			})
+			let processRequest =			
+				let text = txtOf req
+				async {
+					let txtBytes = Encoding.ASCII.GetBytes(text:string)
+					resp.ContentType <- textHtml
+					resp.OutputStream.Write(txtBytes, 0, txtBytes.Length)
+					resp.OutputStream.Close()
+				}
+			
+			if req.HttpMethod = "GET" then processRequest else async { printfn "()" }
+		)
+			
+//			match req.HttpMethod with
+//			| method when method = "GET" -> printfn "get"
+//			| method when method = "POST" -> printfn "post"
+//			| method when method = "PUT" -> printfn "put"
+//			| _ -> printfn "HTTP verb is unknown"
 			
 	let post = get
 	
@@ -68,14 +82,18 @@ module App =
 // todo: split GET/PUT/POST/PATCH/DELETE
 
 	get "/user" (fun req ->
-		req.QueryString.["id"] |> Dump //json query to db?
+		req.QueryString.["id"] |> Dump // json query to db?
 		let mary = {id=876; age=21; name="Mary"}
 		mary |> toJson)
 		
 	// curl --data "{\"name\": \"dude\"}" http://yourhosthere/user
+	
+	// curl --data "{\"name\": \"dude\"}" "http://localhost:8762"
+	
 //	post "/user" (fun req ->
-//		let user = req |> fetchObjectOf<User>
+//		let user = req |> fromJsonOf<User>
 //		user |> Dump
 //		"hello, new User")
 		
 	// todo: get static file
+	
